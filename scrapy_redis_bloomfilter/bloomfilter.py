@@ -57,5 +57,4 @@ class BloomFilter(object):
         """
         for f in self.maps:
             offset = f.hash(value)
-            print(offset)
             self.server.setbit(self.key, offset, 1)
