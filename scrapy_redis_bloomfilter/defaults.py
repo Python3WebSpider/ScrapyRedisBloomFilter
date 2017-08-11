@@ -5,7 +5,9 @@ import redis
 DUPEFILTER_KEY = 'dupefilter:%(timestamp)s'
 
 PIPELINE_KEY = '%(spider)s:items'
-
+BLOOMFILTER_HASH_NUMBER = 6
+BLOOMFILTER_BIT = 30
+DUPEFILTER_DEBUG = False
 REDIS_CLS = redis.StrictRedis
 REDIS_ENCODING = 'utf-8'
 # Sane connection defaults.

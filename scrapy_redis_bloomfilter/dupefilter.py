@@ -3,10 +3,10 @@ import time
 
 from scrapy.dupefilters import BaseDupeFilter
 from scrapy.utils.request import request_fingerprint
-
+from .defaults import BLOOMFILTER_HASH_NUMBER, BLOOMFILTER_BIT, DUPEFILTER_DEBUG
 from . import defaults
 from .connection import get_redis_from_settings
-
+from .bloomfilter import BloomFilter
 
 logger = logging.getLogger(__name__)
 
@@ -18,10 +18,10 @@ class RFPDupeFilter(BaseDupeFilter):
     This class can also be used with default Scrapy's scheduler.
 
     """
-
+    
     logger = logger
-
-    def __init__(self, server, key, debug=False):
+    
+    def __init__(self, server, key, debug, bit, hash_number):
         """Initialize the duplicates filter.
 
         Parameters
@@ -37,8 +37,11 @@ class RFPDupeFilter(BaseDupeFilter):
         self.server = server
         self.key = key
         self.debug = debug
+        self.bit = bit
+        self.hash_number = hash_number
         self.logdupes = True
-
+        self.bf = BloomFilter(server, self.key, bit, hash_number)
+    
     @classmethod
     def from_settings(cls, settings):
         """Returns an instance from given settings.
@@ -64,9 +67,11 @@ class RFPDupeFilter(BaseDupeFilter):
         # if scrapy passes spider on open() method this wouldn't be needed
         # TODO: Use SCRAPY_JOB env as default and fallback to timestamp.
         key = defaults.DUPEFILTER_KEY % {'timestamp': int(time.time())}
-        debug = settings.getbool('DUPEFILTER_DEBUG')
-        return cls(server, key=key, debug=debug)
-
+        debug = settings.getbool('DUPEFILTER_DEBUG', DUPEFILTER_DEBUG)
+        bit = settings.getint('BLOOMFILTER_BIT', BLOOMFILTER_BIT)
+        hash_number = settings.getint('BLOOMFILTER_HASH_NUMBER', BLOOMFILTER_HASH_NUMBER)
+        return cls(server, key=key, debug=debug, bit=bit, hash_number=hash_number)
+    
     @classmethod
     def from_crawler(cls, crawler):
         """Returns instance from crawler.
@@ -82,7 +87,7 @@ class RFPDupeFilter(BaseDupeFilter):
 
         """
         return cls.from_settings(crawler.settings)
-
+    
     def request_seen(self, request):
         """Returns True if request was already seen.
 
@@ -97,9 +102,11 @@ class RFPDupeFilter(BaseDupeFilter):
         """
         fp = self.request_fingerprint(request)
         # This returns the number of values added, zero if already exists.
-        added = self.server.sadd(self.key, fp)
-        return added == 0
-
+        if self.bf.exists(fp):
+            return True
+        self.bf.insert(fp)
+        return False
+    
     def request_fingerprint(self, request):
         """Returns a fingerprint for a given request.
 
@@ -113,7 +120,7 @@ class RFPDupeFilter(BaseDupeFilter):
 
         """
         return request_fingerprint(request)
-
+    
     def close(self, reason=''):
         """Delete data on close. Called by Scrapy's scheduler.
 
@@ -123,11 +130,11 @@ class RFPDupeFilter(BaseDupeFilter):
 
         """
         self.clear()
-
+    
     def clear(self):
         """Clears fingerprints data."""
         self.server.delete(self.key)
-
+    
     def log(self, request, spider):
         """Logs given request.
 

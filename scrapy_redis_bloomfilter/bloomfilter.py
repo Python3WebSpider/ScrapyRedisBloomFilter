@@ -1,49 +1,61 @@
-class Hash(object):
-    def __init__(self, cap, seed):
-        self.cap = cap
+from .defaults import BLOOMFILTER_BIT, BLOOMFILTER_HASH_NUMBER
+
+class HashMap(object):
+    def __init__(self, m, seed):
+        self.m = m
         self.seed = seed
     
     def hash(self, value):
+        """
+        Hash Algorithm
+        :param value: Value
+        :return: Hash Value
+        """
         ret = 0
         for i in range(len(value)):
             ret += self.seed * ret + ord(value[i])
-        return (self.cap - 1) & ret
+        return (self.m - 1) & ret
 
 
 class BloomFilter(object):
-    def __init__(self, server, key, blockNum=1):
-        self.size = 1 << 31
-        self.seeds = [5, 7, 11, 13, 31]
+    def __init__(self, server, key, bit=BLOOMFILTER_BIT, hash_number=BLOOMFILTER_HASH_NUMBER):
+        """
+        Initialize BloomFilter
+        :param server: Redis Server
+        :param key: BloomFilter Key
+        :param bit: m = 2 ^ bit
+        :param hash_number: the number of hash function
+        """
+        # default to 1 << 30 = 10,7374,1824 = 2^30 = 128MB, max filter 2^30/hash_number = 1,7895,6970 fingerprints
+        self.m = 1 << bit
+        self.seeds = range(hash_number)
         self.server = server
         self.key = key
-        self.blockNum = blockNum
-        self.hashes = []
+        self.maps = []
         for seed in self.seeds:
-            self.hashes.append(Hash(self.size, seed))
+            self.maps.append(HashMap(self.m, seed))
     
-    def contains(self, value):
+    def exists(self, value):
+        """
+        if value exists
+        :param value:
+        :return:
+        """
         if not value:
             return False
-        ret = True
-        
-        name = self.key + str(int(value[0:2], 16) % self.blockNum)
-        for f in self.hashes:
-            loc = f.hash(value)
-            ret = ret & self.server.getbit(name, loc)
-        return ret
+        exist = True
+        for map in self.maps:
+            offset = map.hash(value)
+            exist = exist & self.server.getbit(self.key, offset)
+        return exist
     
     def insert(self, value):
-        name = self.key + str(int(value[0:2], 16) % self.blockNum)
-        for f in self.hashes:
-            loc = f.hash(value)
-            self.server.setbit(name, loc, 1)
-
-
-from redis import StrictRedis
-
-server = StrictRedis(host='localhost', port=6379, db=1, password='foobared')
-key = 'baidu'
-filter = BloomFilter(server=server, key=key)
-filter.insert('1')
-result = filter.contains('1')
-print(result)
+        """
+        add value to bloom
+        :param value:
+        :return:
+        """
+        for f in self.maps:
+            offset = f.hash(value)
+            print(offset)
+            self.server.setbit(self.key, offset, 1)
