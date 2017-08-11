@@ -1,0 +1,3 @@
+# ScrapyRedisBloomFilter
+
+BloomFilter on Redis
