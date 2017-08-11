@@ -5,6 +5,6 @@ from .connection import (  # NOQA
 )
 
 
-__author__ = 'Rolando Espinoza'
-__email__ = 'rolando at rmax.io'
-__version__ = '0.7.0-dev'
+__author__ = 'Germey'
+__email__ = 'cqc@cuiqingcai.com'
+__version__ = '0.6.0'

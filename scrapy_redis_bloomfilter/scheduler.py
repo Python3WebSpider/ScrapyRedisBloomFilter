@@ -4,6 +4,7 @@ import six
 from scrapy.utils.misc import load_object
 
 from . import connection, defaults
+from .defaults import BLOOMFILTER_BIT, BLOOMFILTER_HASH_NUMBER
 
 
 # TODO: add SCRAPY_JOB support.
@@ -30,7 +31,7 @@ class Scheduler(object):
         Scheduler serializer.
 
     """
-
+    
     def __init__(self, server,
                  persist=False,
                  flush_on_start=False,
@@ -64,7 +65,7 @@ class Scheduler(object):
         """
         if idle_before_close < 0:
             raise TypeError("idle_before_close cannot be negative")
-
+        
         self.server = server
         self.persist = persist
         self.flush_on_start = flush_on_start
@@ -75,10 +76,10 @@ class Scheduler(object):
         self.idle_before_close = idle_before_close
         self.serializer = serializer
         self.stats = None
-
+    
     def __len__(self):
         return len(self.queue)
-
+    
     @classmethod
     def from_settings(cls, settings):
         kwargs = {
@@ -86,7 +87,7 @@ class Scheduler(object):
             'flush_on_start': settings.getbool('SCHEDULER_FLUSH_ON_START'),
             'idle_before_close': settings.getint('SCHEDULER_IDLE_BEFORE_CLOSE'),
         }
-
+        
         # If these values are missing, it means we want to use the defaults.
         optional = {
             # TODO: Use custom prefixes for this settings to note that are
@@ -102,27 +103,27 @@ class Scheduler(object):
             val = settings.get(setting_name)
             if val:
                 kwargs[name] = val
-
+        
         # Support serializer as a path to a module.
         if isinstance(kwargs.get('serializer'), six.string_types):
             kwargs['serializer'] = importlib.import_module(kwargs['serializer'])
-
+        
         server = connection.from_settings(settings)
         # Ensure the connection is working.
         server.ping()
-
+        
         return cls(server=server, **kwargs)
-
+    
     @classmethod
     def from_crawler(cls, crawler):
         instance = cls.from_settings(crawler.settings)
         # FIXME: for now, stats are only supported from this constructor
         instance.stats = crawler.stats
         return instance
-
+    
     def open(self, spider):
         self.spider = spider
-
+        
         try:
             self.queue = load_object(self.queue_cls)(
                 server=self.server,
@@ -133,31 +134,33 @@ class Scheduler(object):
         except TypeError as e:
             raise ValueError("Failed to instantiate queue class '%s': %s",
                              self.queue_cls, e)
-
+        
         try:
             self.df = load_object(self.dupefilter_cls)(
                 server=self.server,
                 key=self.dupefilter_key % {'spider': spider.name},
                 debug=spider.settings.getbool('DUPEFILTER_DEBUG'),
+                bit=spider.settings.getint('BLOOMFILTER_BIT', BLOOMFILTER_BIT),
+                hash_number=spider.settings.getint('BLOOMFILTER_HASH_NUMBER', BLOOMFILTER_HASH_NUMBER)
             )
         except TypeError as e:
             raise ValueError("Failed to instantiate dupefilter class '%s': %s",
                              self.dupefilter_cls, e)
-
+        
         if self.flush_on_start:
             self.flush()
         # notice if there are requests already in the queue to resume the crawl
         if len(self.queue):
             spider.log("Resuming crawl (%d requests scheduled)" % len(self.queue))
-
+    
     def close(self, reason):
         if not self.persist:
             self.flush()
-
+    
     def flush(self):
         self.df.clear()
         self.queue.clear()
-
+    
     def enqueue_request(self, request):
         if not request.dont_filter and self.df.request_seen(request):
             self.df.log(request, self.spider)
@@ -166,13 +169,13 @@ class Scheduler(object):
             self.stats.inc_value('scheduler/enqueued/redis', spider=self.spider)
         self.queue.push(request)
         return True
-
+    
     def next_request(self):
         block_pop_timeout = self.idle_before_close
         request = self.queue.pop(block_pop_timeout)
         if request and self.stats:
             self.stats.inc_value('scheduler/dequeued/redis', spider=self.spider)
         return request
-
+    
     def has_pending_requests(self):
         return len(self) > 0

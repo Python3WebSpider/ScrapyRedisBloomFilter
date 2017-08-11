@@ -86,7 +86,9 @@ class RFPDupeFilter(BaseDupeFilter):
             Instance of RFPDupeFilter.
 
         """
-        return cls.from_settings(crawler.settings)
+        instance = cls.from_settings(crawler.settings)
+        # FIXME: for now, stats are only supported from this constructor
+        return instance
     
     def request_seen(self, request):
         """Returns True if request was already seen.
@@ -153,3 +155,5 @@ class RFPDupeFilter(BaseDupeFilter):
                    " (see DUPEFILTER_DEBUG to show all duplicates)")
             self.logger.debug(msg, {'request': request}, extra={'spider': spider})
             self.logdupes = False
+        spider.crawler.stats.inc_value('bloomfilter/filtered', spider=spider)
+

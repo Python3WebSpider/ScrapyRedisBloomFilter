@@ -7,7 +7,7 @@ __pycache__/
 .idea
 # C extensions
 *.so
-
+.DS_Store
 # Distribution / packaging
 .Python
 env/
@@ -95,3 +95,4 @@ ENV/
 # Rope project settings
 .ropeproject
 
+.gitignore
