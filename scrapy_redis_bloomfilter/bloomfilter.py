@@ -1,5 +1,6 @@
 from .defaults import BLOOMFILTER_BIT, BLOOMFILTER_HASH_NUMBER
 
+
 class HashMap(object):
     def __init__(self, m, seed):
         self.m = m
@@ -31,9 +32,7 @@ class BloomFilter(object):
         self.seeds = range(hash_number)
         self.server = server
         self.key = key
-        self.maps = []
-        for seed in self.seeds:
-            self.maps.append(HashMap(self.m, seed))
+        self.maps = [HashMap(self.m, seed) for seed in self.seeds]
     
     def exists(self, value):
         """
