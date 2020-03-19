@@ -20,7 +20,7 @@ SCHEDULER = "scrapy_redis_bloomfilter.scheduler.Scheduler"
 DUPEFILTER_CLASS = "scrapy_redis_bloomfilter.dupefilter.RFPDupeFilter"
 
 # Redis URL
-REDIS_URL = 'redis://:foobared@localhost:6379'
+REDIS_URL = 'redis://user:pass@localhost:6379'
 
 # Number of Hash Functions to use, defaults to 6
 BLOOMFILTER_HASH_NUMBER = 6
