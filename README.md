@@ -23,7 +23,7 @@ Add this settings to `settings.py`:
 SCHEDULER = "scrapy_redis_bloomfilter.scheduler.Scheduler"
 
 # Ensure all spiders share same duplicates filter through redis
-DUPEFILTER_CLASS = "scrapy_redis_bloomfilter.RFPDupeFilter"
+DUPEFILTER_CLASS = "scrapy_redis_bloomfilter.dupefilter.RFPDupeFilter"
 
 # Redis URL
 REDIS_URL = 'redis://localhost:6379'
