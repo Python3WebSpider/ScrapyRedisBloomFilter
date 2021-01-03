@@ -1,5 +1,7 @@
 # ScrapyRedisBloomFilter
 
+This is a package for supporting BloomFilter of Scrapy-Redis.
+
 ## Installation
 
 You can easily install this package with pip:
@@ -8,25 +10,29 @@ You can easily install this package with pip:
 pip install scrapy-redis-bloomfilter
 ```
 
+Dependency:
+
+* Scrapy-Redis >= 0.6.8
+
 ## Usage
 
 Add this settings to settings.py
 
 ```python
 # Ensure use this Scheduler
-SCHEDULER = "scrapy_redis_bloomfilter.scheduler.Scheduler"
+SCHEDULER = "scrapy_redis.scheduler.Scheduler"
 
 # Ensure all spiders share same duplicates filter through redis
-DUPEFILTER_CLASS = "scrapy_redis_bloomfilter.dupefilter.RFPDupeFilter"
+DUPEFILTER_CLASS = "scrapy_redis_bloomfilter.RFPDupeFilter"
 
 # Redis URL
-REDIS_URL = 'redis://user:pass@localhost:6379'
+REDIS_URL = 'redis://localhost:6379'
 
 # Number of Hash Functions to use, defaults to 6
 BLOOMFILTER_HASH_NUMBER = 6
 
 # Redis Memory Bit of Bloomfilter Usage, 30 means 2^30 = 128MB, defaults to 30
-BLOOMFILTER_BIT = 30
+BLOOMFILTER_BIT = 10
 
 # Persist
 SCHEDULER_PERSIST = True

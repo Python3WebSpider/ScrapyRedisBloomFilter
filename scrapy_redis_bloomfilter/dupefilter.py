@@ -1,17 +1,14 @@
 import logging
 import time
-
-from scrapy.dupefilters import BaseDupeFilter
-from scrapy.utils.request import request_fingerprint
 from .defaults import BLOOMFILTER_HASH_NUMBER, BLOOMFILTER_BIT, DUPEFILTER_DEBUG
 from . import defaults
-from .connection import get_redis_from_settings
+from scrapy_redis.connection import get_redis_from_settings
 from .bloomfilter import BloomFilter
+from scrapy_redis.dupefilter import RFPDupeFilter as BaseDupeFilter
 
 logger = logging.getLogger(__name__)
 
 
-# TODO: Rename class to RedisDupeFilter.
 class RFPDupeFilter(BaseDupeFilter):
     """Redis-based request duplicates filter.
 
@@ -87,7 +84,31 @@ class RFPDupeFilter(BaseDupeFilter):
 
         """
         instance = cls.from_settings(crawler.settings)
-        # FIXME: for now, stats are only supported from this constructor
+        return instance
+    
+    @classmethod
+    def from_spider(cls, spider):
+        """Returns instance from crawler.
+
+        Parameters
+        ----------
+        spider :
+
+        Returns
+        -------
+        RFPDupeFilter
+            Instance of RFPDupeFilter.
+
+        """
+        settings = spider.settings
+        server = get_redis_from_settings(settings)
+        dupefilter_key = settings.get("SCHEDULER_DUPEFILTER_KEY", defaults.SCHEDULER_DUPEFILTER_KEY)
+        key = dupefilter_key % {'spider': spider.name}
+        debug = settings.getbool('DUPEFILTER_DEBUG', DUPEFILTER_DEBUG)
+        bit = settings.getint('BLOOMFILTER_BIT', BLOOMFILTER_BIT)
+        hash_number = settings.getint('BLOOMFILTER_HASH_NUMBER', BLOOMFILTER_HASH_NUMBER)
+        print(key, bit, hash_number)
+        instance = cls(server, key=key, debug=debug, bit=bit, hash_number=hash_number)
         return instance
     
     def request_seen(self, request):
@@ -109,34 +130,6 @@ class RFPDupeFilter(BaseDupeFilter):
         self.bf.insert(fp)
         return False
     
-    def request_fingerprint(self, request):
-        """Returns a fingerprint for a given request.
-
-        Parameters
-        ----------
-        request : scrapy.http.Request
-
-        Returns
-        -------
-        str
-
-        """
-        return request_fingerprint(request)
-    
-    def close(self, reason=''):
-        """Delete data on close. Called by Scrapy's scheduler.
-
-        Parameters
-        ----------
-        reason : str, optional
-
-        """
-        self.clear()
-    
-    def clear(self):
-        """Clears fingerprints data."""
-        self.server.delete(self.key)
-    
     def log(self, request, spider):
         """Logs given request.
 
@@ -156,4 +149,3 @@ class RFPDupeFilter(BaseDupeFilter):
             self.logger.debug(msg, {'request': request}, extra={'spider': spider})
             self.logdupes = False
         spider.crawler.stats.inc_value('bloomfilter/filtered', spider=spider)
-
