@@ -1,4 +1,4 @@
-# ScrapyRedisBloomFilter
+# Scrapy-Redis-BloomFilter
 
 This is a package for supporting BloomFilter of Scrapy-Redis.
 
@@ -16,11 +16,11 @@ Dependency:
 
 ## Usage
 
-Add this settings to settings.py
+Add this settings to `settings.py`:
 
 ```python
 # Ensure use this Scheduler
-SCHEDULER = "scrapy_redis.scheduler.Scheduler"
+SCHEDULER = "scrapy_redis_bloomfilter.scheduler.Scheduler"
 
 # Ensure all spiders share same duplicates filter through redis
 DUPEFILTER_CLASS = "scrapy_redis_bloomfilter.RFPDupeFilter"
@@ -31,7 +31,7 @@ REDIS_URL = 'redis://localhost:6379'
 # Number of Hash Functions to use, defaults to 6
 BLOOMFILTER_HASH_NUMBER = 6
 
-# Redis Memory Bit of Bloomfilter Usage, 30 means 2^30 = 128MB, defaults to 30
+# Redis Memory Bit of Bloom Filter Usage, 30 means 2^30 = 128MB, defaults to 30
 BLOOMFILTER_BIT = 10
 
 # Persist

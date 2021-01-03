@@ -20,7 +20,7 @@ def read_requirements(filename):
             if not line.startswith('#')]
 
 
-NAME = 'scrapy-redis-bloomfilter'
+NAME = 'Scrapy-Redis-BloomFilter'
 FOLDER = 'scrapy_redis_bloomfilter'
 DESCRIPTION = 'Bloom Filter Support for Scrapy-Redis'
 URL = 'https://github.com/Python3WebSpider/ScrapyRedisBloomFilter'
