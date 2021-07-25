@@ -12,14 +12,14 @@ pip install scrapy-redis-bloomfilter
 
 Dependency:
 
-* Scrapy-Redis >= 0.6.8
+- Scrapy-Redis >= 0.6.8
 
 ## Usage
 
 Add this settings to `settings.py`:
 
 ```python
-# Ensure use this Scheduler
+# Use this Scheduler, if your scrapy_redis version is <= 0.7.1
 SCHEDULER = "scrapy_redis_bloomfilter.scheduler.Scheduler"
 
 # Ensure all spiders share same duplicates filter through redis
@@ -58,17 +58,17 @@ from scrapy import Request, Spider
 class TestSpider(Spider):
     name = 'test'
     base_url = 'https://www.baidu.com/s?wd='
-    
+
     def start_requests(self):
         for i in range(10):
             url = self.base_url + str(i)
             yield Request(url, callback=self.parse)
-            
-        # Here contains 10 duplicated Requests    
-        for i in range(100): 
+
+        # Here contains 10 duplicated Requests
+        for i in range(100):
             url = self.base_url + str(i)
             yield Request(url, callback=self.parse)
-    
+
     def parse(self, response):
         self.logger.debug('Response of ' + response.url)
 ```
@@ -94,4 +94,3 @@ Result like this:
  'scheduler/enqueued/redis': 100,
  'start_time': datetime.datetime(2017, 8, 11, 9, 34, 26, 495018)}
 ```
-
